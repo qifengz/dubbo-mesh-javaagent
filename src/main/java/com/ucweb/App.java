@@ -14,7 +14,7 @@ public class App {
 
     public static void premain(String agentOps, Instrumentation inst) {
         logger.info("Dubbo mesh javaagent start······");
-        inst.addTransformer(new DubboLocalDebugAgent());
+        inst.addTransformer(new DubboMeshAgent());
     }
 
 }

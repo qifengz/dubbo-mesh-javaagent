@@ -11,13 +11,13 @@ import java.util.logging.Logger;
 
 
  /**
- * Dubbo 本地调试代理
+ * Dubbo mesh代理
  *
  * @author qifengz
  * @date 2018/10/30 09:10
  */
 
-public class DubboLocalDebugAgent implements ClassFileTransformer {
+public class DubboMeshAgent implements ClassFileTransformer {
 
     private static Logger logger = Logger.getLogger("com.ucweb.DubboMeshAgent");
 
@@ -35,7 +35,7 @@ public class DubboLocalDebugAgent implements ClassFileTransformer {
             try {
                 pool.appendClassPath(new LoaderClassPath(Thread.currentThread().getContextClassLoader()));
                 CtClass abstractClusterInvoker = pool.get(className);
-                //select 方法
+                //doSelect 方法
                 CtMethod select = abstractClusterInvoker.getDeclaredMethod("doSelect");
                 /*
                   插入代码：
