@@ -13,7 +13,8 @@ public class App {
     private static Logger logger = Logger.getLogger("com.ucweb.App");
 
     public static void premain(String agentOps, Instrumentation inst) {
-        logger.info("Dubbo mesh javaagent start······");
+        logger.info("Dubbo mesh javaagent start ...");
+        System.setProperty("mesh.interfaces", agentOps == null ? "" : agentOps);
         inst.addTransformer(new DubboMeshAgent());
     }
 

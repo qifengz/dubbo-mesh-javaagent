@@ -7,6 +7,8 @@ import java.io.StringWriter;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
+import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Logger;
 
 
@@ -18,8 +20,7 @@ import java.util.logging.Logger;
  */
 
 public class DubboMeshAgent implements ClassFileTransformer {
-
-    private static Logger logger = Logger.getLogger("com.ucweb.DubboMeshAgent");
+     private static Logger logger = Logger.getLogger("com.ucweb.DubboMeshAgent");
 
     /**
      * AbstractClusterInvoker类名称
@@ -37,20 +38,31 @@ public class DubboMeshAgent implements ClassFileTransformer {
                 CtClass abstractClusterInvoker = pool.get(className);
                 //doSelect 方法
                 CtMethod select = abstractClusterInvoker.getDeclaredMethod("doSelect");
+
                 /*
                   插入代码：
                   遍历所有的提供者，获取提供者的URL，判断是否包含与发起调用的methodN匹配的URL：
                     如果包含，则基于这个URL的refer出一个新的以${interfaceName}+".rpc:9090"为address的URL，并返回这个URL
                     如果不包含，则跳过，后面走默认的LoadBalance逻辑
-                 */
+                  白名单逻辑：
+                   javaagent参数
+                      如果为空，则拦截全部interface
+                      如果为skip, 则全部跳过，即走原来旧的方式
+                      如果为指定interface名称，则拦截该interface
+                */
                 logger.info("begin to insert mesh code...");
                 String sb =
+//                        " System.out.println(\"=========>invokers size: \"+$3.size()+\", invocation: \"+$2);\n" +
                         "    if( $3 != null && !$3.isEmpty()) {\n" +
-//                        "    System.out.println(\"=========>invokers size: \"+$3.size()+\", invocation: \"+$2);\n" +
                         "      com.alibaba.dubbo.rpc.Protocol refprotocol = com.alibaba.dubbo.common.extension.ExtensionLoader.getExtensionLoader(com.alibaba.dubbo.rpc.Protocol.class).getAdaptiveExtension();" +
                         "      for ( int i=0; i< $3.size(); i++ ) {\n" +
                         "        com.alibaba.dubbo.common.Node node = (com.alibaba.dubbo.common.Node) $3.get(i);\n" +
                         "        com.alibaba.dubbo.common.URL nodeUrl = (com.alibaba.dubbo.common.URL) node.getUrl();\n" +
+                                " java.lang.String whitelist = (java.lang.String) java.lang.System.getProperty(\"mesh.interfaces\",\"\").toLowerCase();\n" +
+//                                " System.out.println(\"=========>interfaceList: \"+whitelist);\n" +
+                                " java.util.List interfaceList = java.util.Arrays.asList(whitelist.split(\",\"));\n" +
+                                " if ( !whitelist.isEmpty() && (whitelist.equalsIgnoreCase(\"skip\") || !interfaceList.contains(nodeUrl.getParameter(\"interface\").toLowerCase()))) {\n"+
+                                "  continue;}\n"+
                         "        if (nodeUrl.getParameter(\"methods\").contains($2.getMethodName())) {\n" +
 //                        "          System.out.println(\"=========> get interface parameter: \"+nodeUrl.getParameter(\"interface\"));\n" +
                         "          nodeUrl = nodeUrl.setAddress(nodeUrl.getParameter(\"interface\").toLowerCase() + \".rpc:9090\");\n"+
